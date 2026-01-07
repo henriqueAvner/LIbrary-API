@@ -1,14 +1,19 @@
 package com.betrybe.alexandria.controller;
 
 import com.betrybe.alexandria.controller.dto.BookCreationDto;
+import com.betrybe.alexandria.controller.dto.BookDetailCreationDto;
+import com.betrybe.alexandria.controller.dto.BookDetailDto;
 import com.betrybe.alexandria.controller.dto.BookDto;
 import com.betrybe.alexandria.entity.Book;
+import com.betrybe.alexandria.entity.BookDetail;
 import com.betrybe.alexandria.service.BookService;
+import com.betrybe.alexandria.service.exception.AuthorNotFoundException;
+import com.betrybe.alexandria.service.exception.BookDetailNotFoundException;
 import com.betrybe.alexandria.service.exception.BookNotFoundException;
+import com.betrybe.alexandria.service.exception.PublisherNotFoundException;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -30,6 +36,7 @@ public class BookController {
     this.bookService = bookService;
   }
 
+  //ROTAS BOOK
   @GetMapping("/{id}")
   public BookDto getBookById(@PathVariable Long id) throws BookNotFoundException {
 
@@ -37,8 +44,11 @@ public class BookController {
   }
 
   @GetMapping
-  public List<BookDto> getAllBooks() {
-    List<Book> allBooks = bookService.findAll();
+  public List<BookDto> getAllBooks(
+      @RequestParam(required = false, defaultValue = "0") int pageNumber,
+      @RequestParam(required = false, defaultValue = "20") int pageSize
+  ) {
+    List<Book> allBooks = bookService.findAll(pageNumber, pageSize);
     return allBooks.stream()
         .map(BookDto::fromEntity)
         .toList();
@@ -60,8 +70,74 @@ public class BookController {
     return BookDto.fromEntity(bookService.deleteById(id));
   }
 
+  //ROTAS BOOKDETAILS
 
+  @PostMapping("/{bookId}/detail")
+  @ResponseStatus(HttpStatus.CREATED)
+  public BookDetailDto createBookDetail(
+      @PathVariable Long bookId,
+      @RequestBody BookDetailCreationDto bookDetailCreationDto) throws BookNotFoundException {
 
+    return BookDetailDto
+        .detailToDto(bookService
+            .createBookDetail(bookId, bookDetailCreationDto
+                .dtoToBookDetail()));
+  }
+
+  @GetMapping("/{bookId}/detail")
+  @ResponseStatus(HttpStatus.OK)
+  public BookDetailDto findDetailById(@PathVariable Long bookId)
+      throws BookNotFoundException, BookDetailNotFoundException {
+
+    BookDetail bookDetail = bookService.getBookDetailById(bookId);
+
+    return BookDetailDto.detailToDto(bookDetail);
+
+  }
+
+  @PutMapping("/{bookId}/detail")
+  @ResponseStatus(HttpStatus.OK)
+  public BookDetailDto updateBookDetail(@PathVariable Long bookId,
+      @RequestBody BookDetailCreationDto bookDetailCreationDto)
+      throws BookDetailNotFoundException, BookNotFoundException {
+
+    return BookDetailDto.detailToDto(bookService.updateBookDetail(bookId, bookDetailCreationDto.dtoToBookDetail()));
+
+  }
+
+  @DeleteMapping("/{bookId}/detail")
+  @ResponseStatus(HttpStatus.OK)
+  public BookDetailDto deleteBookDetail(@PathVariable Long bookId)
+      throws BookDetailNotFoundException, BookNotFoundException {
+
+    return BookDetailDto.detailToDto(bookService.deleteBookDetail(bookId));
+  }
+
+  @PutMapping("/{bookId}/publisher/{publisherId}")
+  public BookDto setBookPublisher(@PathVariable Long bookId, @PathVariable Long publisherId)
+      throws BookNotFoundException, PublisherNotFoundException {
+
+    return BookDto.fromEntity(bookService.setBookPublisher(bookId, publisherId));
+
+  }
+
+  @DeleteMapping("/{bookId}/publisher")
+  public BookDto removeBookPublisher(@PathVariable Long bookId) throws BookNotFoundException {
+
+    return BookDto.fromEntity(bookService.removeBookPublisher(bookId));
+  }
+
+  @PutMapping("/{bookId}/authors/{authorId}")
+  public BookDto addBookAuthor(@PathVariable Long bookId, @PathVariable Long authorId)
+      throws AuthorNotFoundException, BookNotFoundException {
+    return BookDto.fromEntity(bookService.addBookAuthor(bookId, authorId));
+  }
+
+  @DeleteMapping("/{bookId}/authors/{authorId}")
+  public BookDto removeBookAuthor(@PathVariable Long bookId, @PathVariable Long authorId)
+      throws AuthorNotFoundException, BookNotFoundException {
+    return BookDto.fromEntity(bookService.removeBookAuthor(bookId, authorId));
+  }
 
 
 }
